@@ -177,6 +177,11 @@ Example MCP URL to share with Perplexity:
 
 ## Troubleshooting
 
+- **"Failed to install add-on" / "trying to build the image"**
+  - Uppdatera repot till senaste commit (korrekt `Dockerfile` + `build.yaml` med officiella `ghcr.io/home-assistant/*-base-python:3.13-alpine3.23`).
+  - Öppna **Inställningar → System → Loggar** och välj **Supervisor**, eller kör `ha supervisor logs` i terminal-add-on — där står den exakta orsaken (t.ex. nätverk, fel BASE_IMAGE, eller 404 på cloudflared).
+  - Om bygget misslyckas vid nedladdning av cloudflared: kontrollera att din Home Assistant har utgående HTTPS till `github.com`.
+
 - "Cannot discover entities"
   - verify add-on has `homeassistant_api: true`
   - verify Supervisor/API connectivity

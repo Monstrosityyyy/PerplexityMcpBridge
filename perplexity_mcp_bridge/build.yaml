@@ -1,0 +1,8 @@
+# https://developers.home-assistant.io/docs/apps/configuration#app-extended-build
+# Pin Home Assistant official base images (multi-arch + legacy arch-prefixed tags).
+build_from:
+  aarch64: ghcr.io/home-assistant/aarch64-base-python:3.13-alpine3.23
+  amd64: ghcr.io/home-assistant/amd64-base-python:3.13-alpine3.23
+  armv7: ghcr.io/home-assistant/armv7-base-python:3.13-alpine3.23
+  armhf: ghcr.io/home-assistant/armhf-base-python:3.13-alpine3.23
+  i386: ghcr.io/home-assistant/i386-base-python:3.13-alpine3.23
