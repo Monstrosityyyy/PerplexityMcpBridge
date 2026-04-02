@@ -116,8 +116,7 @@ repository root
     ├── config.yaml
     ├── Dockerfile
     ├── requirements.txt
-    ├── rootfs/
-    │   └── etc/services.d/perplexity-mcp-bridge/run
+    ├── rootfs/etc/services.d/perplexity-mcp-bridge/README.md  # run genereras i Dockerfile
     ├── README.md
     └── src
         ├── __init__.py
@@ -187,10 +186,13 @@ Example MCP URL to share with Perplexity:
 - **`exec: fatal: unable to exec bashio`**
   - Shebang får **inte** vara `#!/usr/bin/with-contenv bashio` — `bashio` är inget program.
 
+- **`s6-supervise … unable to spawn ./run: No such file or directory`**
+  - Nästan alltid **CRLF-radbrytning** (Windows/Git) i `run` → shebang blir `/bin/sh\r` och kärnan svarar ENOENT.
+  - Lösning i detta repo: **`run` skapas i Dockerfile** med `echo` under Linux-bygget — ingen `COPY` av skriptfil från Git.
+
 - **`exec: fatal: unable to exec bash` / `bashio` / `/bin/sh` med `with-contenv` i shebang**
-  - Använd **inte** `#!/usr/bin/with-contenv …` som första rad i `run` — `with-contenv` försöker då `exec`:a nästa ord som program och misslyckas på många Supervisor-byggen.
-  - Rätt mönster: **`#!/bin/sh`** och kör `python -m uvicorn …` direkt (miljö ärvs från s6).
-  - Efter uppdatering: **ta bort add-on, installera om** eller **tvinga ombyggnad** så gammal image inte cachas (annars ser du fortfarande `bashio` i loggen).
+  - Använd **inte** `with-contenv` som shebang-interpreter för långkörning; använd **`#!/bin/sh`** i genererat skript och **`/usr/local/bin/python`** explicit.
+  - Efter uppdatering: **bygg om** add-on (version ska stämma med `config.yaml`).
 
 - **"Failed to install add-on" / "trying to build the image"**
   - Uppdatera repot till senaste commit (korrekt `Dockerfile` + `build.yaml` med officiella `ghcr.io/home-assistant/*-base-python:3.13-alpine3.23`).

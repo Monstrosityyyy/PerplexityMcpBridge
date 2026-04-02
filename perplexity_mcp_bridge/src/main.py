@@ -16,7 +16,7 @@ from .config_store import load_config, load_secrets, save_config, save_secrets
 from .ha_client import HomeAssistantClient
 from .logging_utils import mask_secret, setup_logging
 from .mcp import call_tool, list_resources, list_tools, read_resource
-from .models import AddonConfig, AddonSecrets, EntitySelection, ExposureMode, HealthStatus
+from .models import AddonConfig, AddonSecrets, CloudflareMode, EntitySelection, ExposureMode, HealthStatus
 from .policy import filtered_entities
 
 setup_logging()
@@ -33,7 +33,7 @@ class WizardSavePayload(BaseModel):
     exposure_mode: ExposureMode
     selected_entities: list[str]
     cloudflare_enabled: bool
-    cloudflare_mode: str = "token"
+    cloudflare_mode: CloudflareMode = CloudflareMode.TOKEN
     cloudflare_tunnel_token: str | None = None
     cloudflare_hostname: str | None = None
     cloudflare_manual_args: str | None = None
@@ -63,10 +63,13 @@ async def ping() -> dict[str, str]:
 @app.get("/api/health")
 async def health() -> HealthStatus:
     cfg, sec, ha = _current()
-    states = []
+    states: list[dict[str, Any]] = []
     connected = await ha.health()
     if connected:
-        states = await ha.list_states()
+        try:
+            states = await ha.list_states()
+        except Exception:
+            connected = False
     exposed = filtered_entities(cfg, states)
     return HealthStatus(
         ha_connected=connected,
@@ -82,9 +85,19 @@ async def health() -> HealthStatus:
 async def discover_entities() -> dict[str, Any]:
     global _last_sync
     cfg, _, ha = _current()
-    states = await ha.list_states()
+    try:
+        states = await ha.list_states()
+    except Exception as exc:
+        logger.warning("discover failed: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Kunde inte hämta entiteter från Home Assistant (token/Supervisor eller nätverk).",
+        ) from exc
     _last_sync = datetime.now(timezone.utc)
-    supported = [s for s in states if s.get("entity_id", "").split(".", 1)[0] in {"light", "switch", "climate", "cover", "sensor", "binary_sensor", "media_player"}]
+    domains = {"light", "switch", "climate", "cover", "sensor", "binary_sensor", "media_player"}
+    supported = [
+        s for s in states if s.get("entity_id", "").split(".", 1)[0] in domains
+    ]
     selected = {s.entity_id for s in cfg.policy.selected_entities if s.enabled}
     return {"entities": supported, "selected": list(selected)}
 
@@ -95,7 +108,7 @@ async def wizard_save(payload: WizardSavePayload) -> dict[str, Any]:
     cfg.policy.exposure_mode = payload.exposure_mode
     cfg.policy.selected_entities = [EntitySelection(entity_id=e, enabled=True) for e in payload.selected_entities]
     cfg.cloudflare.enabled = payload.cloudflare_enabled
-    cfg.cloudflare.mode = payload.cloudflare_mode  # type: ignore[assignment]
+    cfg.cloudflare.mode = payload.cloudflare_mode
     cfg.cloudflare.tunnel_token = payload.cloudflare_tunnel_token
     cfg.cloudflare.hostname = payload.cloudflare_hostname
     cfg.cloudflare.manual_args = payload.cloudflare_manual_args
