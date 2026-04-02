@@ -2,7 +2,7 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  /** Ingress-säker URL (respekterar &lt;base&gt;). */
+  /** Resolves API paths correctly behind Home Assistant ingress (&lt;base&gt;). */
   function apiUrl(path) {
     return new URL(path.replace(/^\//, ""), document.baseURI).href;
   }
@@ -31,7 +31,7 @@
     try {
       data = text ? JSON.parse(text) : {};
     } catch {
-      throw new Error(`Ogiltigt svar (${res.status})`);
+      throw new Error(`Invalid response (${res.status})`);
     }
     if (!res.ok) {
       const detail = data.detail || data.message || JSON.stringify(data);
@@ -47,10 +47,8 @@
   const entityCount = $("#entity-count");
   const entitiesHint = $("#entities-hint");
   let entities = [];
-  let currentStep = 0;
 
   function setStep(n) {
-    currentStep = n;
     $$(".step").forEach((btn) => {
       const step = Number(btn.dataset.step);
       const on = step === n;
@@ -72,13 +70,22 @@
     btn.addEventListener("click", () => setStep(Number(btn.dataset.goto)));
   });
 
+  function modeLabel(mode) {
+    if (mode === "long_lived_token") return "Long-lived token";
+    if (mode === "supervisor") return "Supervisor";
+    return "None";
+  }
+
   function renderStatusGrid(data) {
+    const base = data.ha_api_base || "—";
     const rows = [
-      ["Home Assistant", data.ha_connected ? "Ansluten" : "Ej ansluten", data.ha_connected],
-      ["Tunnel", data.tunnel_running ? "Körs" : "Stoppad", data.tunnel_running],
-      ["Publik värd", data.tunnel_hostname || "—", null],
-      ["Auth", data.auth_configured ? "Konfigurerad" : "Saknas", data.auth_configured],
-      ["Exponerade entiteter", String(data.exposed_entity_count ?? "0"), null],
+      ["Home Assistant", data.ha_connected ? "Connected" : "Not connected", data.ha_connected],
+      ["HA API mode", modeLabel(data.ha_connection_mode), null],
+      ["HA API base", base, null],
+      ["Tunnel", data.tunnel_running ? "Running" : "Stopped", data.tunnel_running],
+      ["Public host", data.tunnel_hostname || "—", null],
+      ["MCP bearer auth", data.auth_configured ? "Set" : "Missing", data.auth_configured],
+      ["Exposed entities", String(data.exposed_entity_count ?? "0"), null],
     ];
     statusGrid.innerHTML = rows
       .map(
@@ -98,7 +105,7 @@
       renderStatusGrid(json);
     } catch (e) {
       statusNode.textContent = String(e.message || e);
-      statusGrid.innerHTML = `<div class="status-pill"><span>API</span><strong class="bad">Fel</strong></div>`;
+      statusGrid.innerHTML = `<div class="status-pill"><span>API</span><strong class="bad">Error</strong></div>`;
     }
   }
 
@@ -119,13 +126,13 @@
         <input type="checkbox" data-entity="${id}" ${entity.selected ? "checked" : ""} />
         <div>
           <div class="entity-id">${id}</div>
-          <div class="entity-meta">Tillstånd: ${entity.state ?? "—"}</div>
+          <div class="entity-meta">State: ${entity.state ?? "—"}</div>
         </div>
       `;
       entitiesDiv.appendChild(row);
     });
 
-    entityCount.textContent = `${filtered.length} av ${entities.length} visas`;
+    entityCount.textContent = `${filtered.length} of ${entities.length} shown`;
     entitiesHint.hidden = entities.length > 0;
   }
 
@@ -133,7 +140,7 @@
 
   $("#discover").addEventListener("click", async () => {
     try {
-      toast("Hämtar entiteter…");
+      toast("Loading entities…");
       const data = await fetchJson("api/discover");
       const selected = new Set(data.selected || []);
       entities = (data.entities || []).map((e) => ({
@@ -142,7 +149,7 @@
       }));
       renderEntities();
       await refreshStatus();
-      toast(`Hämtade ${entities.length} entiteter.`);
+      toast(`Loaded ${entities.length} entities.`);
     } catch (e) {
       toast(e.message || String(e), true);
     }
@@ -165,6 +172,8 @@
       (x) => x.dataset.entity
     );
 
+    const haLlat = ($("#ha-llat").value || "").trim();
+
     const body = {
       exposure_mode: $("#mode").value,
       selected_entities: selectedEntities,
@@ -176,6 +185,7 @@
       require_cf_access_headers: $("#cf-access").checked,
       cf_access_client_id: $("#cf-id").value || null,
       cf_access_client_secret: $("#cf-secret").value || null,
+      home_assistant_long_lived_token: haLlat || null,
     };
 
     try {
@@ -184,7 +194,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      toast(`Sparat. Token (maskad): ${data.masked_bearer_token || "ok"}`);
+      toast(`Saved. MCP token (masked): ${data.masked_bearer_token || "ok"}`);
       updateMcpUrlPreview();
       await refreshStatus();
     } catch (e) {
@@ -195,7 +205,7 @@
   $("#launch").addEventListener("click", async () => {
     try {
       await fetchJson("api/launch", { method: "POST" });
-      toast("Tunnel startad (om token och inställningar stämmer).");
+      toast("Tunnel start requested (requires valid Cloudflare settings).");
       await refreshStatus();
     } catch (e) {
       toast(e.message || String(e), true);
@@ -204,7 +214,7 @@
 
   $("#btn-refresh-status").addEventListener("click", () => {
     refreshStatus();
-    toast("Status uppdaterad.");
+    toast("Status refreshed.");
   });
 
   function updateMcpUrlPreview() {

@@ -44,6 +44,6 @@ RUN install -d /etc/services.d/perplexity-mcp-bridge && { \
     && test "$(head -1 /etc/services.d/perplexity-mcp-bridge/run | tr -d '\r')" = '#!/bin/sh'
 
 LABEL \
-  io.hass.version="0.1.6" \
+  io.hass.version="0.1.7" \
   io.hass.type="addon" \
   io.hass.arch="armhf|aarch64|i386|amd64|armv7"

@@ -1,10 +1,9 @@
 <!doctype html>
-<html lang="sv">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Perplexity MCP Bridge</title>
-    <!-- Ingress: sidan ligger under t.ex. /hassio/ingress/... — absoluta /static och /api träffar HA:s rot, inte add-onen. -->
     <script>
       (function () {
         var p = window.location.pathname;
@@ -23,160 +22,199 @@
           <span class="brand-icon" aria-hidden="true">◇</span>
           <div>
             <h1 class="brand-title">Perplexity MCP Bridge</h1>
-            <p class="brand-sub">Säker brygga mellan Home Assistant och Perplexity (MCP)</p>
+            <p class="brand-sub">Secure bridge from Home Assistant to Perplexity (MCP over Cloudflare)</p>
           </div>
         </div>
         <div class="topbar-actions">
-          <button type="button" class="btn btn-ghost" id="btn-refresh-status" title="Uppdatera status">
-            Uppdatera
-          </button>
+          <button type="button" class="btn btn-ghost" id="btn-refresh-status" title="Refresh status">Refresh</button>
         </div>
       </div>
     </header>
 
     <main class="layout">
-      <nav class="steps" aria-label="Steg i guiden">
-        <button type="button" class="step is-active" data-step="0" aria-current="step">
-          <span class="step-num">1</span>
-          <span class="step-label">Översikt</span>
-        </button>
-        <button type="button" class="step" data-step="1">
-          <span class="step-num">2</span>
-          <span class="step-label">Entiteter</span>
-        </button>
-        <button type="button" class="step" data-step="2">
-          <span class="step-num">3</span>
-          <span class="step-label">Cloudflare</span>
-        </button>
-        <button type="button" class="step" data-step="3">
-          <span class="step-num">4</span>
-          <span class="step-label">Autentisering</span>
-        </button>
-        <button type="button" class="step" data-step="4">
-          <span class="step-num">5</span>
-          <span class="step-label">Starta</span>
-        </button>
-      </nav>
+      <div class="layout-main">
+        <nav class="steps" aria-label="Wizard steps">
+          <button type="button" class="step is-active" data-step="0" aria-current="step">
+            <span class="step-num">1</span>
+            <span class="step-label">Overview</span>
+          </button>
+          <button type="button" class="step" data-step="1">
+            <span class="step-num">2</span>
+            <span class="step-label">Entities</span>
+          </button>
+          <button type="button" class="step" data-step="2">
+            <span class="step-num">3</span>
+            <span class="step-label">Cloudflare</span>
+          </button>
+          <button type="button" class="step" data-step="3">
+            <span class="step-num">4</span>
+            <span class="step-label">MCP auth</span>
+          </button>
+          <button type="button" class="step" data-step="4">
+            <span class="step-num">5</span>
+            <span class="step-label">Review</span>
+          </button>
+        </nav>
 
-      <section class="panels">
-        <!-- Steg 0 -->
-        <article class="panel card is-active" data-panel="0">
-          <h2 class="card-title">Välkommen</h2>
-          <p class="lede">
-            Denna add-on publicerar <strong>endast</strong> de Home Assistant-entiteter du väljer som verktyg via ett
-            MCP-gränssnitt. Åtkomst från internet sker via <strong>Cloudflare Tunnel</strong> — inga routerportar
-            behöver öppnas.
-          </p>
-          <ul class="checklist">
-            <li>Standard: inget exponeras förrän du sparar ett aktivt urval (eller väljer ”alla stödda”).</li>
-            <li>Sensorer är skrivskyddade; styrning sker bara via tillåtna verktyg per domän.</li>
-            <li>Använd en <strong>dedikerad underdomän</strong> för MCP, inte samma som din HA-inloggning.</li>
-          </ul>
-          <div class="row-actions">
-            <button type="button" class="btn btn-primary" data-goto="1">Fortsätt till entiteter →</button>
-          </div>
-        </article>
+        <section class="panels">
+          <article class="panel card is-active" data-panel="0">
+            <h2 class="card-title">Welcome</h2>
+            <p class="lede">
+              This add-on exposes <strong>only</strong> the Home Assistant entities you choose as MCP tools. Remote
+              access uses <strong>Cloudflare Tunnel</strong> — no router port forwarding.
+            </p>
+            <ul class="checklist">
+              <li>Default: nothing is exposed until you save a selection (or choose “all supported”).</li>
+              <li>Sensors are read-only; actions are limited to safe, domain-specific tools.</li>
+              <li>Use a <strong>dedicated subdomain</strong> for MCP, not your main Home Assistant URL.</li>
+            </ul>
+            <div class="row-actions">
+              <button type="button" class="btn btn-primary" data-goto="1">Continue to entities →</button>
+            </div>
+          </article>
 
-        <!-- Steg 1 -->
-        <article class="panel card" data-panel="1" hidden>
-          <h2 class="card-title">Entiteter</h2>
-          <p class="muted">Hämta listan från Home Assistant och välj vad som får synas i MCP.</p>
+          <article class="panel card" data-panel="1" hidden>
+            <h2 class="card-title">Entities</h2>
+            <p class="muted">Load entities from Home Assistant and choose what may appear in MCP.</p>
 
-          <div class="field-row">
+            <div class="callout callout-info">
+              <p class="callout-title">Connecting to Home Assistant</p>
+              <p class="small muted">
+                Normally the <strong>Supervisor</strong> injects API access automatically. If status shows “Not
+                connected”, create a <strong>Long-Lived Access Token</strong> in Home Assistant
+                (<strong>Profile → Security</strong>) and paste it below. That token only talks to Home Assistant — it is
+                <strong>not</strong> the same as the <strong>MCP bearer token</strong> (step 4), which protects the
+                public MCP endpoint for Perplexity.
+              </p>
+            </div>
+
             <label class="field">
-              <span class="field-label">Exponeringsläge</span>
-              <select id="mode" class="input">
-                <option value="manual">Manuellt urval (rekommenderas)</option>
-                <option value="all_supported">Alla stödda entiteter</option>
-              </select>
+              <span class="field-label">Home Assistant token (optional)</span>
+              <input
+                id="ha-llat"
+                class="input"
+                type="password"
+                autocomplete="off"
+                placeholder="Long-Lived Access Token from Profile → Security"
+              />
+              <span class="hint muted">Leave empty to use the Supervisor token only. Saved when you click Save configuration.</span>
             </label>
-            <button type="button" class="btn btn-primary" id="discover">Hämta entiteter</button>
-          </div>
 
-          <div class="field">
-            <span class="field-label">Filtrera</span>
-            <input id="search" class="input" type="search" placeholder="Sök entity_id eller domän…" autocomplete="off" />
-          </div>
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">Exposure mode</span>
+                <select id="mode" class="input">
+                  <option value="manual">Manual selection (recommended)</option>
+                  <option value="all_supported">All supported entities</option>
+                </select>
+              </label>
+              <button type="button" class="btn btn-primary" id="discover">Fetch entities</button>
+            </div>
 
-          <div class="entity-toolbar">
-            <button type="button" class="btn btn-sm btn-ghost" id="select-all">Markera synliga</button>
-            <button type="button" class="btn btn-sm btn-ghost" id="deselect-all">Avmarkera synliga</button>
-            <span class="entity-count muted" id="entity-count"></span>
-          </div>
+            <div class="field">
+              <span class="field-label">Filter</span>
+              <input
+                id="search"
+                class="input"
+                type="search"
+                placeholder="Search entity_id or domain…"
+                autocomplete="off"
+              />
+            </div>
 
-          <div id="entities" class="entities" role="listbox" aria-multiselectable="true"></div>
-          <p class="hint muted" id="entities-hint">Klicka på ”Hämta entiteter” för att ladda listan.</p>
-        </article>
+            <div class="entity-toolbar">
+              <button type="button" class="btn btn-sm btn-ghost" id="select-all">Select visible</button>
+              <button type="button" class="btn btn-sm btn-ghost" id="deselect-all">Clear visible</button>
+              <span class="entity-count muted" id="entity-count"></span>
+            </div>
 
-        <!-- Steg 2 -->
-        <article class="panel card" data-panel="2" hidden>
-          <h2 class="card-title">Cloudflare Tunnel</h2>
-          <p class="muted">Klistra in tunnel-token från Cloudflare och ange den dedikerade värdnamnet för MCP.</p>
-          <label class="field">
-            <span class="field-label">Aktivera tunnel</span>
-            <label class="switch">
-              <input type="checkbox" id="cf-enabled" checked />
-              <span class="switch-ui" aria-hidden="true"></span>
-              <span class="switch-text">Kör cloudflared i add-onen</span>
+            <div id="entities" class="entities" role="listbox" aria-multiselectable="true"></div>
+            <p class="hint muted" id="entities-hint">Click “Fetch entities” to load the list.</p>
+          </article>
+
+          <article class="panel card" data-panel="2" hidden>
+            <h2 class="card-title">Cloudflare Tunnel</h2>
+            <p class="muted">Paste your tunnel token and the dedicated hostname for this MCP service.</p>
+            <label class="field">
+              <span class="field-label">Enable tunnel</span>
+              <label class="switch">
+                <input type="checkbox" id="cf-enabled" checked />
+                <span class="switch-ui" aria-hidden="true"></span>
+                <span class="switch-text">Run cloudflared inside the add-on</span>
+              </label>
             </label>
-          </label>
-          <label class="field">
-            <span class="field-label">Tunnel token</span>
-            <input id="cf-token" class="input" type="password" autocomplete="off" placeholder="Klistra in token från Cloudflare" />
-          </label>
-          <label class="field">
-            <span class="field-label">Dedikerad värd (subdomän)</span>
-            <input id="cf-hostname" class="input" type="text" placeholder="t.ex. perplexity-mcp.dindomän.se" />
-          </label>
-        </article>
-
-        <!-- Steg 3 -->
-        <article class="panel card" data-panel="3" hidden>
-          <h2 class="card-title">Autentisering</h2>
-          <p class="muted">MCP-anrop kräver en bärartoken. Lämna tom för att behålla befintlig token.</p>
-          <label class="field">
-            <span class="field-label">Bearer token (hemlig)</span>
-            <input id="bearer-token" class="input" type="password" autocomplete="new-password" placeholder="Ny token (valfritt)" />
-          </label>
-          <label class="field">
-            <span class="field-label">Cloudflare Access (valfritt)</span>
-            <label class="switch">
-              <input type="checkbox" id="cf-access" />
-              <span class="switch-ui" aria-hidden="true"></span>
-              <span class="switch-text">Kräv CF Access service token-headers</span>
+            <label class="field">
+              <span class="field-label">Tunnel token</span>
+              <input id="cf-token" class="input" type="password" autocomplete="off" placeholder="Cloudflare tunnel token" />
             </label>
-          </label>
-          <label class="field">
-            <span class="field-label">CF Access Client ID</span>
-            <input id="cf-id" class="input" type="text" autocomplete="off" />
-          </label>
-          <label class="field">
-            <span class="field-label">CF Access Client Secret</span>
-            <input id="cf-secret" class="input" type="password" autocomplete="off" />
-          </label>
-        </article>
+            <label class="field">
+              <span class="field-label">Dedicated hostname</span>
+              <input id="cf-hostname" class="input" type="text" placeholder="e.g. perplexity-mcp.example.com" />
+            </label>
+          </article>
 
-        <!-- Steg 4 -->
-        <article class="panel card" data-panel="4" hidden>
-          <h2 class="card-title">Granska och starta</h2>
-          <p class="muted">Spara inställningarna och starta tunneln när du är redo.</p>
-          <div class="row-actions wrap">
-            <button type="button" class="btn btn-primary" id="save">Spara konfiguration</button>
-            <button type="button" class="btn btn-secondary" id="launch">Starta säker endpoint</button>
-          </div>
-          <div class="callout" id="mcp-url-box" hidden>
-            <p class="callout-title">MCP-URL (för Perplexity)</p>
-            <code class="mono" id="mcp-url"></code>
-            <p class="muted small">Använd <code class="mono">Authorization: Bearer &lt;token&gt;</code> i klienten.</p>
-          </div>
-        </article>
-      </section>
+          <article class="panel card" data-panel="3" hidden>
+            <h2 class="card-title">MCP authentication (Perplexity)</h2>
+            <p class="muted">
+              Clients calling your public MCP URL must send this secret. It is <strong>not</strong> your Home Assistant
+              login or Long-Lived Token.
+            </p>
+            <div class="callout callout-info">
+              <p class="callout-title">Bearer token</p>
+              <p class="small muted">
+                A random secret generated for this add-on. Perplexity (or any MCP client) sends
+                <code class="mono">Authorization: Bearer &lt;this-token&gt;</code>. Rotate it anytime from here.
+              </p>
+            </div>
+            <label class="field">
+              <span class="field-label">New MCP bearer token (optional)</span>
+              <input
+                id="bearer-token"
+                class="input"
+                type="password"
+                autocomplete="new-password"
+                placeholder="Leave empty to keep the current token"
+              />
+            </label>
+            <label class="field">
+              <span class="field-label">Cloudflare Access (optional)</span>
+              <label class="switch">
+                <input type="checkbox" id="cf-access" />
+                <span class="switch-ui" aria-hidden="true"></span>
+                <span class="switch-text">Require CF Access service token headers</span>
+              </label>
+            </label>
+            <label class="field">
+              <span class="field-label">CF Access Client ID</span>
+              <input id="cf-id" class="input" type="text" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span class="field-label">CF Access Client Secret</span>
+              <input id="cf-secret" class="input" type="password" autocomplete="off" />
+            </label>
+          </article>
+
+          <article class="panel card" data-panel="4" hidden>
+            <h2 class="card-title">Review &amp; launch</h2>
+            <p class="muted">Save settings, then start the tunnel when ready.</p>
+            <div class="row-actions wrap">
+              <button type="button" class="btn btn-primary" id="save">Save configuration</button>
+              <button type="button" class="btn btn-secondary" id="launch">Start secure endpoint</button>
+            </div>
+            <div class="callout" id="mcp-url-box" hidden>
+              <p class="callout-title">Public MCP URL</p>
+              <code class="mono" id="mcp-url"></code>
+              <p class="muted small">Use <code class="mono">Authorization: Bearer &lt;MCP token&gt;</code> in the client.</p>
+            </div>
+          </article>
+        </section>
+      </div>
 
       <aside class="sidebar">
         <div class="card status-card">
           <h3 class="card-title small">Status</h3>
           <div id="status-grid" class="status-grid"></div>
-          <p class="muted small">Senaste JSON (felsökning)</p>
+          <p class="muted small">Raw JSON (debug)</p>
           <pre id="status" class="status-raw"></pre>
         </div>
       </aside>

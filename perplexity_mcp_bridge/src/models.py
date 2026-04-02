@@ -74,6 +74,8 @@ class AddonSecrets(BaseModel):
 
 class HealthStatus(BaseModel):
     ha_connected: bool = False
+    ha_connection_mode: str = "none"  # supervisor | long_lived_token | none
+    ha_api_base: str | None = None
     tunnel_running: bool = False
     tunnel_hostname: str | None = None
     auth_configured: bool = False

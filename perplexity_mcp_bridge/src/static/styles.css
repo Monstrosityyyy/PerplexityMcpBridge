@@ -98,23 +98,38 @@ body {
   margin: 0 auto;
   padding: 1.25rem;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
   gap: 1.25rem;
   align-items: start;
+}
+
+/* One column for steps + panels; sidebar is column 2. Fixes empty middle when three children sat in a 2-col grid. */
+.layout-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  grid-column: 1;
+}
+
+.sidebar {
+  grid-column: 2;
+  position: sticky;
+  top: 5.5rem;
+  min-width: 0;
 }
 
 @media (max-width: 960px) {
   .layout {
     grid-template-columns: 1fr;
   }
+  .layout-main {
+    grid-column: 1;
+  }
   .sidebar {
+    grid-column: 1;
     order: -1;
   }
-}
-
-.sidebar {
-  position: sticky;
-  top: 5.5rem;
 }
 
 .steps {
@@ -454,6 +469,17 @@ body {
   border-radius: var(--radius-md);
   background: rgba(91, 140, 255, 0.08);
   border: 1px solid rgba(91, 140, 255, 0.25);
+}
+
+.callout-info {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  background: rgba(52, 211, 153, 0.06);
+  border-color: rgba(52, 211, 153, 0.25);
+}
+
+.callout-info .callout-title {
+  color: #6ee7b7;
 }
 
 .callout-title {

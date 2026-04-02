@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from .auth import enforce_auth
 from .cloudflare import CloudflareTunnelManager
 from .config_store import load_config, load_secrets, save_config, save_secrets
-from .ha_client import HomeAssistantClient
+from .ha_client import HomeAssistantClient, reset_ha_resolution_cache
 from .logging_utils import mask_secret, setup_logging
 from .mcp import call_tool, list_resources, list_tools, read_resource
 from .models import AddonConfig, AddonSecrets, CloudflareMode, EntitySelection, ExposureMode, HealthStatus
@@ -41,6 +41,8 @@ class WizardSavePayload(BaseModel):
     require_cf_access_headers: bool = False
     cf_access_client_id: str | None = None
     cf_access_client_secret: str | None = None
+    # Optional: Home Assistant Long-Lived Access Token (Profile → Security) if Supervisor API is unavailable.
+    home_assistant_long_lived_token: str | None = None
 
 
 def _current() -> tuple[AddonConfig, AddonSecrets, HomeAssistantClient]:
@@ -56,7 +58,7 @@ async def index() -> FileResponse:
 
 @app.get("/ping")
 async def ping() -> dict[str, str]:
-    """Lättvikts-endpoint för Supervisor watchdog (ingen HA-anrop)."""
+    """Lightweight watchdog endpoint (no Home Assistant calls)."""
     return {"status": "ok"}
 
 
@@ -73,6 +75,8 @@ async def health() -> HealthStatus:
     exposed = filtered_entities(cfg, states)
     return HealthStatus(
         ha_connected=connected,
+        ha_connection_mode=ha.connection_mode(),
+        ha_api_base=ha.resolved_base_public(),
         tunnel_running=_cloudflare.running,
         tunnel_hostname=cfg.cloudflare.hostname,
         auth_configured=bool(sec.app_bearer_token and cfg.auth.bearer_token_enabled),
@@ -91,7 +95,11 @@ async def discover_entities() -> dict[str, Any]:
         logger.warning("discover failed: %s", exc)
         raise HTTPException(
             status_code=503,
-            detail="Kunde inte hämta entiteter från Home Assistant (token/Supervisor eller nätverk).",
+            detail=(
+                "Could not load entities from Home Assistant. "
+                "Ensure this add-on has API access (Supervisor token) or paste a Long-Lived Access Token "
+                "(Profile → Security) in the wizard or add-on options."
+            ),
         ) from exc
     _last_sync = datetime.now(timezone.utc)
     domains = {"light", "switch", "climate", "cover", "sensor", "binary_sensor", "media_player"}
@@ -117,6 +125,9 @@ async def wizard_save(payload: WizardSavePayload) -> dict[str, Any]:
     cfg.auth.cf_access_client_secret = payload.cf_access_client_secret
     if payload.bearer_token:
         sec.app_bearer_token = payload.bearer_token
+    if payload.home_assistant_long_lived_token:
+        sec.ha_long_lived_token = payload.home_assistant_long_lived_token.strip()
+        reset_ha_resolution_cache()
     save_config(cfg)
     save_secrets(sec)
     return {"ok": True, "masked_bearer_token": mask_secret(sec.app_bearer_token)}
