@@ -187,8 +187,10 @@ Example MCP URL to share with Perplexity:
 - **`exec: fatal: unable to exec bashio`**
   - Shebang får **inte** vara `#!/usr/bin/with-contenv bashio` — `bashio` är inget program.
 
-- **`exec: fatal: unable to exec bash`**
-  - Home Assistant **base-python** (Alpine) innehåller ofta **inte** `bash`, bara `/bin/sh` (ash). Använd `#!/usr/bin/with-contenv sh` och `set -eu` (inte `pipefail` som kräver bash).
+- **`exec: fatal: unable to exec bash` / `bashio` / `/bin/sh` med `with-contenv` i shebang**
+  - Använd **inte** `#!/usr/bin/with-contenv …` som första rad i `run` — `with-contenv` försöker då `exec`:a nästa ord som program och misslyckas på många Supervisor-byggen.
+  - Rätt mönster: **`#!/bin/sh`** och kör `python -m uvicorn …` direkt (miljö ärvs från s6).
+  - Efter uppdatering: **ta bort add-on, installera om** eller **tvinga ombyggnad** så gammal image inte cachas (annars ser du fortfarande `bashio` i loggen).
 
 - **"Failed to install add-on" / "trying to build the image"**
   - Uppdatera repot till senaste commit (korrekt `Dockerfile` + `build.yaml` med officiella `ghcr.io/home-assistant/*-base-python:3.13-alpine3.23`).

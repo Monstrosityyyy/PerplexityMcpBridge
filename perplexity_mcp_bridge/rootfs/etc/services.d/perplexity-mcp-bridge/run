@@ -1,5 +1,6 @@
-#!/usr/bin/with-contenv /bin/sh
-# base-python (Alpine) har /bin/sh men oftast inte bash — använd sh + POSIX.
+#!/bin/sh
+# Kör direkt med /bin/sh — INTE #!/usr/bin/with-contenv … (ger "unable to exec bashio/bash/sh").
+# s6 longrun ärvde normalt alla container-/Supervisor-variabler från PID 1.
 set -eu
 export PYTHONUNBUFFERED=1
 

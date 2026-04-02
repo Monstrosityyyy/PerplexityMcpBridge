@@ -7,6 +7,9 @@ ARG BUILD_ARCH=amd64
 
 WORKDIR /app
 
+# Säkerställ POSIX-shell och bash (finns i HA base, men explicit om något bygglager avviker).
+RUN apk add --no-cache bash
+
 ARG CLOUDFLARED_VERSION=2026.3.0
 RUN set -eux; \
     apk add --no-cache ca-certificates curl; \
@@ -32,6 +35,6 @@ COPY rootfs /
 RUN find /etc/services.d -name run -type f -exec chmod a+x {} +
 
 LABEL \
-  io.hass.version="0.1.3" \
+  io.hass.version="0.1.4" \
   io.hass.type="addon" \
   io.hass.arch="armhf|aarch64|i386|amd64|armv7"
