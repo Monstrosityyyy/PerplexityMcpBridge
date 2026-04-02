@@ -184,6 +184,9 @@ Example MCP URL to share with Perplexity:
   - Kontrollera add-on-loggar: **Inställningar → Tillägg → Perplexity MCP Bridge → Logg**.
   - `watchdog` pekar på `GET /ping` (snabb healthcheck utan Home Assistant-anrop).
 
+- **`exec: fatal: unable to exec bashio`**
+  - Shebang får **inte** vara `#!/usr/bin/with-contenv bashio` — `bashio` är inget program, bara ett bash-bibliotek. Använd `#!/usr/bin/with-contenv bash` (eller `sh`) i `run`-skriptet.
+
 - **"Failed to install add-on" / "trying to build the image"**
   - Uppdatera repot till senaste commit (korrekt `Dockerfile` + `build.yaml` med officiella `ghcr.io/home-assistant/*-base-python:3.13-alpine3.23`).
   - Öppna **Inställningar → System → Loggar** och välj **Supervisor**, eller kör `ha supervisor logs` i terminal-add-on — där står den exakta orsaken (t.ex. nätverk, fel BASE_IMAGE, eller 404 på cloudflared).
