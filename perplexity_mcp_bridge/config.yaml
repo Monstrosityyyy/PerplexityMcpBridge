@@ -1,0 +1,29 @@
+name: "Perplexity MCP Bridge"
+version: "0.1.0"
+slug: "perplexity_mcp_bridge"
+description: "Expose selected Home Assistant entities to Perplexity via a secure MCP endpoint over Cloudflare Tunnel."
+url: "https://github.com/YOUR_USERNAME/perplexity-mcp-bridge-ha"
+arch:
+  - aarch64
+  - amd64
+  - armv7
+  - i386
+  - armhf
+startup: application
+boot: auto
+init: false
+host_network: false
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:cloud-lock-outline
+panel_title: Perplexity MCP Bridge
+homeassistant_api: true
+hassio_api: true
+map:
+  - addon_config:rw
+options:
+  cloudflare_tunnel_token: ""
+  cloudflare_hostname: ""
+schema:
+  cloudflare_tunnel_token: "str?"
+  cloudflare_hostname: "str?"

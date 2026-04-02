@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Perplexity MCP Bridge</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Perplexity MCP Bridge</h1>
+      <p class="sub">Securely expose selected Home Assistant entities through Cloudflare Tunnel.</p>
+
+      <section class="card">
+        <h2>Setup Wizard</h2>
+        <div class="grid">
+          <label>Exposure mode
+            <select id="mode">
+              <option value="manual">Manually select entities</option>
+              <option value="all_supported">Expose all supported entities</option>
+            </select>
+          </label>
+          <button id="discover">Discover entities</button>
+        </div>
+        <input id="search" placeholder="Search entities..." />
+        <div id="entities" class="entities"></div>
+
+        <h3>Cloudflare</h3>
+        <label><input type="checkbox" id="cf-enabled" checked /> Enable tunnel</label>
+        <label>Tunnel token <input id="cf-token" type="password" placeholder="Paste Cloudflare tunnel token" /></label>
+        <label>Dedicated hostname <input id="cf-hostname" placeholder="perplexity-mcp.example.com" /></label>
+
+        <h3>Application auth</h3>
+        <label>Bearer token <input id="bearer-token" type="password" placeholder="Leave empty to keep existing token" /></label>
+        <label><input type="checkbox" id="cf-access" /> Require Cloudflare Access service token headers</label>
+        <label>CF Access Client ID <input id="cf-id" /></label>
+        <label>CF Access Client Secret <input id="cf-secret" type="password" /></label>
+
+        <div class="buttons">
+          <button id="save">Save config</button>
+          <button id="launch">Launch secure endpoint</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Status</h2>
+        <pre id="status"></pre>
+      </section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
