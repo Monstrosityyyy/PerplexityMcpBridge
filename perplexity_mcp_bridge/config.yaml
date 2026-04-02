@@ -1,5 +1,5 @@
 name: "Perplexity MCP Bridge"
-version: "0.1.2"
+version: "0.1.3"
 slug: "perplexity_mcp_bridge"
 description: "Expose selected Home Assistant entities to Perplexity via a secure MCP endpoint over Cloudflare Tunnel."
 url: "https://github.com/YOUR_USERNAME/perplexity-mcp-bridge-ha"

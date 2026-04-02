@@ -185,7 +185,10 @@ Example MCP URL to share with Perplexity:
   - `watchdog` pekar på `GET /ping` (snabb healthcheck utan Home Assistant-anrop).
 
 - **`exec: fatal: unable to exec bashio`**
-  - Shebang får **inte** vara `#!/usr/bin/with-contenv bashio` — `bashio` är inget program, bara ett bash-bibliotek. Använd `#!/usr/bin/with-contenv bash` (eller `sh`) i `run`-skriptet.
+  - Shebang får **inte** vara `#!/usr/bin/with-contenv bashio` — `bashio` är inget program.
+
+- **`exec: fatal: unable to exec bash`**
+  - Home Assistant **base-python** (Alpine) innehåller ofta **inte** `bash`, bara `/bin/sh` (ash). Använd `#!/usr/bin/with-contenv sh` och `set -eu` (inte `pipefail` som kräver bash).
 
 - **"Failed to install add-on" / "trying to build the image"**
   - Uppdatera repot till senaste commit (korrekt `Dockerfile` + `build.yaml` med officiella `ghcr.io/home-assistant/*-base-python:3.13-alpine3.23`).

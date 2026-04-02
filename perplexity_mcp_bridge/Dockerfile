@@ -32,6 +32,6 @@ COPY rootfs /
 RUN find /etc/services.d -name run -type f -exec chmod a+x {} +
 
 LABEL \
-  io.hass.version="0.1.2" \
+  io.hass.version="0.1.3" \
   io.hass.type="addon" \
   io.hass.arch="armhf|aarch64|i386|amd64|armv7"
