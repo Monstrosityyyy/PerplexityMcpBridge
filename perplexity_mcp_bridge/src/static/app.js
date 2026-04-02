@@ -2,6 +2,11 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+  /** Ingress-säker URL (respekterar &lt;base&gt;). */
+  function apiUrl(path) {
+    return new URL(path.replace(/^\//, ""), document.baseURI).href;
+  }
+
   const toastEl = $("#toast");
   let toastTimer;
 
@@ -19,8 +24,8 @@
     }, 4200);
   }
 
-  async function fetchJson(url, opts) {
-    const res = await fetch(url, opts);
+  async function fetchJson(path, opts) {
+    const res = await fetch(apiUrl(path), opts);
     const text = await res.text();
     let data;
     try {
@@ -88,7 +93,7 @@
 
   async function refreshStatus() {
     try {
-      const json = await fetchJson("/api/health");
+      const json = await fetchJson("api/health");
       statusNode.textContent = JSON.stringify(json, null, 2);
       renderStatusGrid(json);
     } catch (e) {
@@ -129,7 +134,7 @@
   $("#discover").addEventListener("click", async () => {
     try {
       toast("Hämtar entiteter…");
-      const data = await fetchJson("/api/discover");
+      const data = await fetchJson("api/discover");
       const selected = new Set(data.selected || []);
       entities = (data.entities || []).map((e) => ({
         ...e,
@@ -174,7 +179,7 @@
     };
 
     try {
-      const data = await fetchJson("/api/wizard/save", {
+      const data = await fetchJson("api/wizard/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -189,7 +194,7 @@
 
   $("#launch").addEventListener("click", async () => {
     try {
-      await fetchJson("/api/launch", { method: "POST" });
+      await fetchJson("api/launch", { method: "POST" });
       toast("Tunnel startad (om token och inställningar stämmer).");
       await refreshStatus();
     } catch (e) {

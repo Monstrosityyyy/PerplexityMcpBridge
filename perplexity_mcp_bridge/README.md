@@ -135,6 +135,12 @@ repository root
             └── styles.css
 ```
 
+## Home Assistant Ingress (Web UI)
+
+Öppnas UI via **Öppna webbgränssnitt** ligger sidan under en sökväg som  
+`/hassio/ingress/<slug>/`, inte i webbserverns rot. Därför får **inte** HTML använda absoluta länkar som `/static/...` eller `/api/...` — då hämtas filer från Home Assistants egen webbserver (fel CSS/JS, knappar fungerar inte).  
+I detta projekt: `<base href=".../">`, relativa `static/...` och API-anrop via `new URL(..., document.baseURI)`.
+
 ## Development Notes
 
 - Backend stack: Python + FastAPI for robust APIs and HTTP MCP transport.
