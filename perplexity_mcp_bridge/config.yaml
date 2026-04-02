@@ -1,5 +1,5 @@
 name: "Perplexity MCP Bridge"
-version: "0.1.0"
+version: "0.1.1"
 slug: "perplexity_mcp_bridge"
 description: "Expose selected Home Assistant entities to Perplexity via a secure MCP endpoint over Cloudflare Tunnel."
 url: "https://github.com/YOUR_USERNAME/perplexity-mcp-bridge-ha"
@@ -15,6 +15,8 @@ init: false
 host_network: false
 ingress: true
 ingress_port: 8099
+# Hjälp Supervisor veta när servern svarar (minskar "not ready" / 502 vid långsam start).
+watchdog: "http://[HOST]:[PORT:8099]/ping"
 panel_icon: mdi:cloud-lock-outline
 panel_title: Perplexity MCP Bridge
 homeassistant_api: true

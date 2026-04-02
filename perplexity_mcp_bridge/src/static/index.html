@@ -1,52 +1,185 @@
 <!doctype html>
-<html lang="en">
+<html lang="sv">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Perplexity MCP Bridge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
-    <main class="container">
-      <h1>Perplexity MCP Bridge</h1>
-      <p class="sub">Securely expose selected Home Assistant entities through Cloudflare Tunnel.</p>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-      <section class="card">
-        <h2>Setup Wizard</h2>
-        <div class="grid">
-          <label>Exposure mode
-            <select id="mode">
-              <option value="manual">Manually select entities</option>
-              <option value="all_supported">Expose all supported entities</option>
-            </select>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <span class="brand-icon" aria-hidden="true">◇</span>
+          <div>
+            <h1 class="brand-title">Perplexity MCP Bridge</h1>
+            <p class="brand-sub">Säker brygga mellan Home Assistant och Perplexity (MCP)</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button type="button" class="btn btn-ghost" id="btn-refresh-status" title="Uppdatera status">
+            Uppdatera
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <nav class="steps" aria-label="Steg i guiden">
+        <button type="button" class="step is-active" data-step="0" aria-current="step">
+          <span class="step-num">1</span>
+          <span class="step-label">Översikt</span>
+        </button>
+        <button type="button" class="step" data-step="1">
+          <span class="step-num">2</span>
+          <span class="step-label">Entiteter</span>
+        </button>
+        <button type="button" class="step" data-step="2">
+          <span class="step-num">3</span>
+          <span class="step-label">Cloudflare</span>
+        </button>
+        <button type="button" class="step" data-step="3">
+          <span class="step-num">4</span>
+          <span class="step-label">Autentisering</span>
+        </button>
+        <button type="button" class="step" data-step="4">
+          <span class="step-num">5</span>
+          <span class="step-label">Starta</span>
+        </button>
+      </nav>
+
+      <section class="panels">
+        <!-- Steg 0 -->
+        <article class="panel card is-active" data-panel="0">
+          <h2 class="card-title">Välkommen</h2>
+          <p class="lede">
+            Denna add-on publicerar <strong>endast</strong> de Home Assistant-entiteter du väljer som verktyg via ett
+            MCP-gränssnitt. Åtkomst från internet sker via <strong>Cloudflare Tunnel</strong> — inga routerportar
+            behöver öppnas.
+          </p>
+          <ul class="checklist">
+            <li>Standard: inget exponeras förrän du sparar ett aktivt urval (eller väljer ”alla stödda”).</li>
+            <li>Sensorer är skrivskyddade; styrning sker bara via tillåtna verktyg per domän.</li>
+            <li>Använd en <strong>dedikerad underdomän</strong> för MCP, inte samma som din HA-inloggning.</li>
+          </ul>
+          <div class="row-actions">
+            <button type="button" class="btn btn-primary" data-goto="1">Fortsätt till entiteter →</button>
+          </div>
+        </article>
+
+        <!-- Steg 1 -->
+        <article class="panel card" data-panel="1" hidden>
+          <h2 class="card-title">Entiteter</h2>
+          <p class="muted">Hämta listan från Home Assistant och välj vad som får synas i MCP.</p>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Exponeringsläge</span>
+              <select id="mode" class="input">
+                <option value="manual">Manuellt urval (rekommenderas)</option>
+                <option value="all_supported">Alla stödda entiteter</option>
+              </select>
+            </label>
+            <button type="button" class="btn btn-primary" id="discover">Hämta entiteter</button>
+          </div>
+
+          <div class="field">
+            <span class="field-label">Filtrera</span>
+            <input id="search" class="input" type="search" placeholder="Sök entity_id eller domän…" autocomplete="off" />
+          </div>
+
+          <div class="entity-toolbar">
+            <button type="button" class="btn btn-sm btn-ghost" id="select-all">Markera synliga</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="deselect-all">Avmarkera synliga</button>
+            <span class="entity-count muted" id="entity-count"></span>
+          </div>
+
+          <div id="entities" class="entities" role="listbox" aria-multiselectable="true"></div>
+          <p class="hint muted" id="entities-hint">Klicka på ”Hämta entiteter” för att ladda listan.</p>
+        </article>
+
+        <!-- Steg 2 -->
+        <article class="panel card" data-panel="2" hidden>
+          <h2 class="card-title">Cloudflare Tunnel</h2>
+          <p class="muted">Klistra in tunnel-token från Cloudflare och ange den dedikerade värdnamnet för MCP.</p>
+          <label class="field">
+            <span class="field-label">Aktivera tunnel</span>
+            <label class="switch">
+              <input type="checkbox" id="cf-enabled" checked />
+              <span class="switch-ui" aria-hidden="true"></span>
+              <span class="switch-text">Kör cloudflared i add-onen</span>
+            </label>
           </label>
-          <button id="discover">Discover entities</button>
-        </div>
-        <input id="search" placeholder="Search entities..." />
-        <div id="entities" class="entities"></div>
+          <label class="field">
+            <span class="field-label">Tunnel token</span>
+            <input id="cf-token" class="input" type="password" autocomplete="off" placeholder="Klistra in token från Cloudflare" />
+          </label>
+          <label class="field">
+            <span class="field-label">Dedikerad värd (subdomän)</span>
+            <input id="cf-hostname" class="input" type="text" placeholder="t.ex. perplexity-mcp.dindomän.se" />
+          </label>
+        </article>
 
-        <h3>Cloudflare</h3>
-        <label><input type="checkbox" id="cf-enabled" checked /> Enable tunnel</label>
-        <label>Tunnel token <input id="cf-token" type="password" placeholder="Paste Cloudflare tunnel token" /></label>
-        <label>Dedicated hostname <input id="cf-hostname" placeholder="perplexity-mcp.example.com" /></label>
+        <!-- Steg 3 -->
+        <article class="panel card" data-panel="3" hidden>
+          <h2 class="card-title">Autentisering</h2>
+          <p class="muted">MCP-anrop kräver en bärartoken. Lämna tom för att behålla befintlig token.</p>
+          <label class="field">
+            <span class="field-label">Bearer token (hemlig)</span>
+            <input id="bearer-token" class="input" type="password" autocomplete="new-password" placeholder="Ny token (valfritt)" />
+          </label>
+          <label class="field">
+            <span class="field-label">Cloudflare Access (valfritt)</span>
+            <label class="switch">
+              <input type="checkbox" id="cf-access" />
+              <span class="switch-ui" aria-hidden="true"></span>
+              <span class="switch-text">Kräv CF Access service token-headers</span>
+            </label>
+          </label>
+          <label class="field">
+            <span class="field-label">CF Access Client ID</span>
+            <input id="cf-id" class="input" type="text" autocomplete="off" />
+          </label>
+          <label class="field">
+            <span class="field-label">CF Access Client Secret</span>
+            <input id="cf-secret" class="input" type="password" autocomplete="off" />
+          </label>
+        </article>
 
-        <h3>Application auth</h3>
-        <label>Bearer token <input id="bearer-token" type="password" placeholder="Leave empty to keep existing token" /></label>
-        <label><input type="checkbox" id="cf-access" /> Require Cloudflare Access service token headers</label>
-        <label>CF Access Client ID <input id="cf-id" /></label>
-        <label>CF Access Client Secret <input id="cf-secret" type="password" /></label>
-
-        <div class="buttons">
-          <button id="save">Save config</button>
-          <button id="launch">Launch secure endpoint</button>
-        </div>
+        <!-- Steg 4 -->
+        <article class="panel card" data-panel="4" hidden>
+          <h2 class="card-title">Granska och starta</h2>
+          <p class="muted">Spara inställningarna och starta tunneln när du är redo.</p>
+          <div class="row-actions wrap">
+            <button type="button" class="btn btn-primary" id="save">Spara konfiguration</button>
+            <button type="button" class="btn btn-secondary" id="launch">Starta säker endpoint</button>
+          </div>
+          <div class="callout" id="mcp-url-box" hidden>
+            <p class="callout-title">MCP-URL (för Perplexity)</p>
+            <code class="mono" id="mcp-url"></code>
+            <p class="muted small">Använd <code class="mono">Authorization: Bearer &lt;token&gt;</code> i klienten.</p>
+          </div>
+        </article>
       </section>
 
-      <section class="card">
-        <h2>Status</h2>
-        <pre id="status"></pre>
-      </section>
+      <aside class="sidebar">
+        <div class="card status-card">
+          <h3 class="card-title small">Status</h3>
+          <div id="status-grid" class="status-grid"></div>
+          <p class="muted small">Senaste JSON (felsökning)</p>
+          <pre id="status" class="status-raw"></pre>
+        </div>
+      </aside>
     </main>
+
     <script src="/static/app.js"></script>
   </body>
 </html>

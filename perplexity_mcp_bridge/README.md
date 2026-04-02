@@ -112,10 +112,12 @@ repository root
 ├── repository.yaml
 ├── README.md
 └── perplexity_mcp_bridge/
+    ├── build.yaml
     ├── config.yaml
     ├── Dockerfile
     ├── requirements.txt
-    ├── run.sh
+    ├── rootfs/
+    │   └── etc/services.d/perplexity-mcp-bridge/run
     ├── README.md
     └── src
         ├── __init__.py
@@ -176,6 +178,11 @@ Example MCP URL to share with Perplexity:
   - verify auth failures and blocked actions are logged without secrets
 
 ## Troubleshooting
+
+- **502 Bad Gateway / "add-on seems not be ready" i ingress**
+  - Web server måste startas som **s6-tjänst** (`rootfs/etc/services.d/.../run`), inte bara `CMD /run.sh` (kan ge fel på vissa basimages).
+  - Kontrollera add-on-loggar: **Inställningar → Tillägg → Perplexity MCP Bridge → Logg**.
+  - `watchdog` pekar på `GET /ping` (snabb healthcheck utan Home Assistant-anrop).
 
 - **"Failed to install add-on" / "trying to build the image"**
   - Uppdatera repot till senaste commit (korrekt `Dockerfile` + `build.yaml` med officiella `ghcr.io/home-assistant/*-base-python:3.13-alpine3.23`).

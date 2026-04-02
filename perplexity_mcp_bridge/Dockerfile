@@ -1,14 +1,12 @@
 # https://developers.home-assistant.io/docs/apps/configuration#app-dockerfile
-# Official Home Assistant Python base (Alpine + bashio + s6); do not use random third-party tags.
+# Official Home Assistant Python base (Alpine + bashio + s6-overlay).
 ARG BUILD_FROM=ghcr.io/home-assistant/base-python:3.13-alpine3.23
 FROM ${BUILD_FROM}
 
-# Supervisor provides this during add-on builds (amd64, aarch64, armv7, armhf, i386).
 ARG BUILD_ARCH=amd64
 
 WORKDIR /app
 
-# cloudflared: not reliably available in Alpine repos across versions — use Cloudflare release binaries.
 ARG CLOUDFLARED_VERSION=2026.3.0
 RUN set -eux; \
     apk add --no-cache ca-certificates curl; \
@@ -28,12 +26,12 @@ COPY requirements.txt /app/requirements.txt
 RUN python -m pip install --no-cache-dir -r /app/requirements.txt
 
 COPY src /app/src
-COPY run.sh /run.sh
-RUN chmod a+x /run.sh
+
+# s6-overlay: start web server via services.d (samma mönster som home-assistant/apps-example).
+COPY rootfs /
+RUN find /etc/services.d -name run -type f -exec chmod a+x {} +
 
 LABEL \
-  io.hass.version="0.1.0" \
+  io.hass.version="0.1.1" \
   io.hass.type="addon" \
   io.hass.arch="armhf|aarch64|i386|amd64|armv7"
-
-CMD [ "/run.sh" ]

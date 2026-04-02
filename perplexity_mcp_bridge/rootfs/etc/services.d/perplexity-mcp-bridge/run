@@ -1,0 +1,16 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Perplexity MCP Bridge — måste köras som s6-tjänst (Home Assistant base images).
+# ==============================================================================
+set -euo pipefail
+export PYTHONUNBUFFERED=1
+
+cd /app || { bashio::log.error "Cannot cd to /app"; exit 1; }
+
+bashio::log.info "Starting Perplexity MCP Bridge (uvicorn) on 0.0.0.0:8099"
+
+exec python -m uvicorn src.main:app \
+  --host 0.0.0.0 \
+  --port 8099 \
+  --proxy-headers \
+  --forwarded-allow-ips='*'

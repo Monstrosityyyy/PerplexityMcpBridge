@@ -54,6 +54,12 @@ async def index() -> FileResponse:
     return FileResponse(str(Path(__file__).parent / "static" / "index.html"))
 
 
+@app.get("/ping")
+async def ping() -> dict[str, str]:
+    """Lättvikts-endpoint för Supervisor watchdog (ingen HA-anrop)."""
+    return {"status": "ok"}
+
+
 @app.get("/api/health")
 async def health() -> HealthStatus:
     cfg, sec, ha = _current()
